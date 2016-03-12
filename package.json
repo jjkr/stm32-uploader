@@ -1,0 +1,29 @@
+{
+  "name": "stm32-uploader",
+  "version": "0.1.0",
+  "description": "A code uploader for stm32 arm chips",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jjkr/stm32-uploader.git"
+  },
+  "keywords": [
+    "ARM",
+    "STM32",
+    "Cortex-M",
+    "Cortex-M3",
+    "Cortex-M4"
+  ],
+  "author": "Joe Kramer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jjkr/stm32-uploader/issues"
+  },
+  "homepage": "https://github.com/jjkr/stm32-uploader#readme",
+  "dependencies": {
+    "usb": "^1.1.1"
+  }
+}
