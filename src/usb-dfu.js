@@ -1,7 +1,7 @@
 import * as usb from 'usb';
 
 export class UsbRequest {
-  constructor(requestType, request, value, dataOrLength) {
+  constructor(requestType, request, value, index, dataOrLength) {
     this.requestType = requestType;
     this.request = request;
     this.value = value;
@@ -70,25 +70,6 @@ const USB_REQUEST_SET_DESCRIPTOR = 0x07;
 const USB_REQUEST_GET_CONFIGURATION = 0x08;
 const USB_REQUEST_SET_CONFIGURATION = 0x09;
 
-function requestTypeFor(request) {
-  switch (request) {
-    case USB_REQUEST_GET_STATUS:
-      return 0x80;
-    case USB_REQUEST_CLEAR_FEATURE:
-    case USB_REQUEST_SET_FEATURE:
-      return 0x0;
-    case USB_REQUEST_SET_ADDRESS:
-    case USB_REQUEST_GET_DESCRIPTOR:
-      return 0x80;
-    case USB_REQUEST_SET_DESCRIPTOR:
-      return 0x0;
-    case USB_REQUEST_GET_CONFIGURATION:
-      return 0x80;
-    case USB_REQUEST_SET_CONFIGURATION:
-      return 0x0;
-  }
-}
-
 /**
  * DFU USB Requests
  *
@@ -148,8 +129,8 @@ export class UsbDevice {
   constructor(device) {
     this.handle = device;
     device.open();
-    this.iface = device.interface
-    (0) this.iface.claim();
+    this.iface = device.interface(0);
+    this.iface.claim();
   }
 
   async sendRequest(request) {
@@ -162,22 +143,7 @@ export class UsbDevice {
         }
       };
       this.handle.controlTransfer(request.requestType, request.request, request.value,
-                                  request.index request.dataOrLength, cb);
-    });
-  }
-
-  async getDescriptor(index) {
-    console.log('getting descriptor');
-    return new Promise((resolve, reject) => {
-      const cb = (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data);
-        }
-      };
-      this.handle.controlTransfer(requestTypeFor(USB_REQUEST_GET_DESCRIPTOR),
-                                  USB_REQUEST_GET_DESCRIPTOR, 0x300 | index, 0, 255, cb);
+                                  request.index, request.dataOrLength, cb);
     });
   }
 }
