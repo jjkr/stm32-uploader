@@ -2,10 +2,11 @@ import * as usb from 'usb';
 import * as _ from 'lodash';
 
 
-usb.setDebugLevel(4);
+//usb.setDebugLevel(0);
+usb.setDebugLevel(4); // debug
 
 const devices = usb.getDeviceList();
-console.log(devices);
+//console.log(devices);
 
 const STMICRO_VENDOR_ID = 0x0483;
 const SILICON_LAB_VENDOR_ID = 0x10c4;
@@ -13,17 +14,20 @@ const stm32Device = devices.find(
   d => { return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID; });
 
 console.log('found stm32 device:');
-console.log(stm32Device);
+console.log(stm32Device.deviceDescriptor);
+console.log('vendorid: ' + stm32Device.deviceDescriptor.idVendor.toString(16));
+console.log('productid: ' +
+            stm32Device.deviceDescriptor.idProduct.toString(16));
 
-console.log('opening');
+//console.log('opening');
 stm32Device.open();
 
-console.log('claiming interface...');
+//console.log('claiming interface...');
 const iface = stm32Device.interface(0);
 iface.claim();
 
-console.log('iface');
-console.log(iface);
+//console.log('iface');
+//console.log(iface);
 
 
 //stm32Device.getStringDescriptor(0, (err, data) => {

@@ -116,14 +116,17 @@ class UsbDevice {
   }
 
   async getDescriptor(index) {
+    const cb = (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    };
     return new Promise((reject, resolve) => {
-      const cb = (err, data) => { if (err) { reject(err); } else {resolve(data); }
-  };
-  //    handle.controlTransfer(requestTypeFor(USB_REQUEST_GET_DESCRIPTOR),
-  //                           USB_REQUEST_GET_DESCRIPTOR, 0x300 | index, 0,
-  //                           255, (err, data) => {
-  //})
-  //});
-});
+      handle.controlTransfer(requestTypeFor(USB_REQUEST_GET_DESCRIPTOR),
+                             USB_REQUEST_GET_DESCRIPTOR, 0x300 | index, 0, 255,
+                             cb);
+    });
+  }
 }
-
