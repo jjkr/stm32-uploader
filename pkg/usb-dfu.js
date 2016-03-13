@@ -47,3 +47,10 @@ const DFU_GETSTATE = 0x05;
 // Requests device to exit the current state/operation and enter idle state
 // immediately.
 const DFU_ABORT = 0x06;
+
+class DfuUsbDevice extends UsbDevice {
+  constructor(device) {
+    super(device);
+  }
+
+}
