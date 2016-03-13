@@ -39,20 +39,6 @@ export class UsbRequest {
     this.index = index;
     this.dataOrLength = dataOrLength;
   }
-
-  async send(device) {
-    return new Promise((resolve, reject) => {
-      const cb = (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data);
-        }
-      };
-      this.handle.controlTransfer(request.requestType, request.request, request.value,
-                                  request.index, request.dataOrLength, cb);
-    });
-  }
 }
 
 /**

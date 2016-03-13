@@ -4,8 +4,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { return step("next", value); }, function (err) { return step("throw", err); }); } } return step("next"); }); }; }
-
 /**
  * USB request class
  *
@@ -45,23 +43,6 @@ class UsbRequest {
     this.value = value;
     this.index = index;
     this.dataOrLength = dataOrLength;
-  }
-
-  send(device) {
-    var _this = this;
-
-    return _asyncToGenerator(function* () {
-      return new Promise(function (resolve, reject) {
-        const cb = function cb(err, data) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(data);
-          }
-        };
-        _this.handle.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
-      });
-    })();
   }
 }
 

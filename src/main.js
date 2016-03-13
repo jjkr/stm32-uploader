@@ -1,91 +1,40 @@
 import * as usb from 'usb';
-import * as _ from 'lodash';
-import {UsbDevice, UsbRequestGetDescriptor, DESCRIPTOR_TYPE_STRING} from './usb-dfu';
+import {UsbDevice} from './usb-device';
+import * as usbRequest from './usb-request';
 
-// usb.setDebugLevel(0);
-usb.setDebugLevel(4);  // debug
+async function main() {
+  // usb.setDebugLevel(0);
+  //usb.setDebugLevel(4);  // debug
 
-const STMICRO_VENDOR_ID = 0x0483;
-const devices = usb.getDeviceList();
-const stm32Device =
-    devices.find(d => { return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID; });
+  const STMICRO_VENDOR_ID = 0x0483;
+  const devices = usb.getDeviceList();
+  const stm32Device =
+      devices.find(d => { return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID; });
 
-// console.log('found stm32 device:');
-// console.log(stm32Device.deviceDescriptor);
-// console.log('vendorid: ' + stm32Device.deviceDescriptor.idVendor.toString(16));
-// console.log('productid: ' +
-//            stm32Device.deviceDescriptor.idProduct.toString(16));
+  // console.log('found stm32 device:');
+  // console.log(stm32Device.deviceDescriptor);
+  // console.log('vendorid: ' + stm32Device.deviceDescriptor.idVendor.toString(16));
+  // console.log('productid: ' +
+  //            stm32Device.deviceDescriptor.idProduct.toString(16));
 
-const usbDev = new UsbDevice(stm32Device);
-const iface = stm32Device.interface(0);
-const index = iface.descriptor.iInterface;
+  const usbDev = new UsbDevice(stm32Device);
+  const iface = stm32Device.interface(0);
+  const index = iface.descriptor.iInterface;
 
-console.log('calling getDescriptor(' + index + ')');
-const request = new UsbRequestGetDescriptor(DESCRIPTOR_TYPE_STRING, index);
-usbDev.sendRequest(request)
-    .then(data => { console.log('chip data: ' + data); })
-    .catch(err => { console.log('getDescriptor err: ' + err); });
+  console.log('calling getDescriptor(' + index + ')');
+  const request = new usbRequest.DeviceGetDescriptor(usbRequest.DESCRIPTOR_TYPE_STRING, index);
 
-console.log('end of main');
+  try {
+    const data = await usbDev.sendRequest(request);
+    console.log('chip data: ' + data);
+  } catch (e) {
+    console.log('getDescriptor err: ' + err);
+  }
 
-// console.log('opening');
-// stm32Device.open();
-//
-// console.log('claiming interface...');
-// const iface = stm32Device.interface(0);
-// iface.claim();
+  console.log('end of main');
+}
 
-// getString
-// const DEVICE_TO_HOST = 1 << 7;  // Bit 7 (MSB)
-// const STANDARD = 0;             // Bits 6..5
-// const RECIPIENT_DEVICE = 0;     // Bits 4..0
-// const requestType = DEVICE_TO_HOST | STANDARD | RECIPIENT_DEVICE;
-// const iIndex = iface.descriptor.iInterface;
-// console.log('requestType: ' + requestType.toString(16));
-// stm32Device.controlTransfer(requestType,     // bmRequestType
-//                            6,               // bRequest
-//                            0x300 | iIndex,  // wValue
-//                            0,               // wIndex
-//                            255,             // length
-//                            (err, data) => {
-//                              if (err) {
-//                                console.log(
-//                                  'usb Device.controlTransfer error: ' + err);
-//                              } else {
-//                                console.log(
-//                                  'usb Device.controlTransfer data: ');
-//                                console.log(data.toString());
-//                              }
-//                            });
-
-// description.then(d => {
-//  console.log('description');
-//  console.log(d);
-//});
-
-// stm32Device.getStringDescriptor(0, (err, data) => {
-//  if (err) {
-//    console.log('getStringDescriptor err: ' + err);
-//  } else {
-//    console.log('data: ');
-//    console.log(data);
-//  }
-//});
-
-
-// stm32Device.reset(err => {
-//  if (err) {
-//    console.log('reset err: ' + err);
-//  }
-//});
-
-// console.log('product: ' + stm32Device.deviceDescriptor.idProduct.toString(16));
-// console.log(usb);
-
-// for (const d of devices.filter(
-//         d => { return d.deviceDescriptor.idVendor === 0x10c4; })) {
-//  //console.log(d.deviceDescriptor.bDeviceClass.toString(16));
-//
-//  console.log('vendor: ' + d.deviceDescriptor.idVendor.toString(16) +
-//              ' product: ' + d.deviceDescriptor.idProduct.toString(16));
-//}
+main().catch(err => {
+  console.log('CAUGHT top level error: ');
+  console.log(err);
+});
