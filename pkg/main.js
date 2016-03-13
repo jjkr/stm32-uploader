@@ -13,8 +13,10 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 usb.setDebugLevel(4);
 
 const devices = usb.getDeviceList();
+console.log(devices);
 
 const STMICRO_VENDOR_ID = 0x0483;
+const SILICON_LAB_VENDOR_ID = 0x10c4;
 const stm32Device = devices.find(d => {
   return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID;
 });
@@ -26,7 +28,11 @@ console.log('opening');
 stm32Device.open();
 
 console.log('claiming interface...');
-stm32Device.interface(0).claim();
+const iface = stm32Device.interface(0);
+iface.claim();
+
+console.log('iface');
+console.log(iface);
 
 //stm32Device.getStringDescriptor(0, (err, data) => {
 //  if (err) {
@@ -41,10 +47,11 @@ const DEVICE_TO_HOST = 1 << 7; // Bit 7 (MSB)
 const STANDARD = 0; // Bits 6..5
 const RECIPIENT_DEVICE = 0; // Bits 4..0
 const requestType = DEVICE_TO_HOST | STANDARD | RECIPIENT_DEVICE;
+const iIndex = iface.descriptor.iInterface;
 console.log('requestType: ' + requestType.toString(16));
 stm32Device.controlTransfer(requestType, // bmRequestType
 6, // bRequest
-0x300, // wValue
+0x300 | iIndex, // wValue
 0, // wIndex
 255, // length
 (err, data) => {
@@ -52,7 +59,7 @@ stm32Device.controlTransfer(requestType, // bmRequestType
     console.log('usb Device.controlTransfer error: ' + err);
   } else {
     console.log('usb Device.controlTransfer data: ');
-    console.log(data);
+    console.log(data.toString());
   }
 });
 
