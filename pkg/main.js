@@ -10,37 +10,27 @@ let main = (() => {
       return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID;
     });
 
-    console.log('opening device');
-    stm32Device.open();
-
     if (!stm32Device) {
       throw Error('Missing STM32 device');
     }
 
-    // console.log('found stm32 device:');
-    // console.log(stm32Device.deviceDescriptor);
-    // console.log('vendorid: ' + stm32Device.deviceDescriptor.idVendor.toString(16));
-    // console.log('productid: ' +
-    //            stm32Device.deviceDescriptor.idProduct.toString(16));
+    console.log('opening device');
+    stm32Device.open();
 
     const iface = stm32Device.interface(0);
-    console.log('iface');
-    console.log(iface);
+
+    //console.log('iface');
+    //console.log(iface);
+
     const flashDescriptorIndex = iface.descriptor.iInterface;
     const usbDev = new _usbDevice.UsbDevice(stm32Device);
 
     const flashDescriptor = yield usbDev.getStringDescriptor(flashDescriptorIndex);
 
-    console.log('JJK flash descriptor:');
-    console.log(flashDescriptor);
+    //console.log('JJK flash descriptor:');
+    //console.log(flashDescriptor);
 
-    console.log(parseFlashDescriptor(flashDescriptor.substr(1)));
-    //const matches = flashDescriptor.toString().match(flashRegex);
-
-    //  const splitFlash = flashDescriptor.split('/');
-    //  console.log('flash addr: ' + splitFlash[1]);
-    //  console.log('flash banks: ' + splitFlash[2]);
-    //console.log(matches);
+    console.log(parseFlashDescriptor(flashDescriptor));
 
     console.log('end of main');
   });
@@ -75,27 +65,43 @@ function parseFlashDescriptor(descriptor) {
   if (splitStr.length < 3) {
     throw new Error('bad format for flash descriptor: ' + descriptor);
   }
-  console.log('jjk splitstr:');
-  console.log(splitStr[0]);
-  for (const c of splitStr[0]) {
-    console.log('jjk c: ' + c);
-  }
-  if (!splitStr[0].startsWith('@Internal Flash')) {
+  if (splitStr[0].indexOf('@Internal Flash') === -1) {
     throw new Error('Bad Flash descriptor: ' + descriptor);
   }
 
   const startAddress = parseInt(splitStr[1]);
 
   const sectors = [];
+  var totalSize = 0;
   for (const s of splitStr[2].split(',')) {
     const spl = s.split('*');
-    const numPages = spl[0];
-    const pageSize = spl[1];
 
+    if (spl.length < 2) {
+      throw new Error('Bad page descriptor, no asterisk: ' + s);
+    }
+
+    const numPages = parseInt(spl[0]);
+    var pageSize = parseInt(spl[1]);
+
+    switch (spl[1].slice(-2, -1)[0]) {
+      case 'M':
+        pageSize *= 1024 * 1024;
+        break;
+      case 'K':
+        pageSize *= 1024;
+        break;
+      default:
+        throw new Error('Bad pageSize: ' + spl[1]);
+    }
+
+    const sectorSize = numPages * pageSize;
     sectors.push({
-      numPages: parseInt(numPages.toString()),
-      pageSize: pageSize.toString()
+      numPages: numPages,
+      pageSize: pageSize,
+      startAddress: startAddress + totalSize,
+      totalSize: sectorSize
     });
+    totalSize += sectorSize;
   }
 
   return {
