@@ -1,6 +1,15 @@
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.DfuUsbDevice = undefined;
+
+var _usbDevice = require('./usb-device');
+
 var _usbRequest = require('./usb-request');
+
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { return step("next", value); }, function (err) { return step("throw", err); }); } } return step("next"); }); }; }
 
 /**
  * Device Firmware Update (DFU) USB Requests
@@ -26,7 +35,11 @@ const DFU_DETACH = 0x00;
 
 // Requests data transfer from Host to the device in order to load them into
 // device internal Flash. Includes also erase commands
-const DFU_DNLOAD = 0x01;
+class DfuDownloadRequest extends _usbRequest.UsbRequest {
+  constructor(blockNum, index, fw) {
+    super(0x21, 1, blockNum, index, fw);
+  }
+}
 
 // Requests data transfer from device to Host in order to load content of device
 // internal Flash into a Host file.
@@ -35,7 +48,11 @@ const DFU_UPLOAD = 0x02;
 // Requests device to send status report to the Host (including status resulting
 // from the last request execution and the state the device will enter
 // immediately after this request).
-const DFU_GETSTATUS = 0x03;
+class DfuGetStatus extends _usbRequest.UsbRequest {
+  constructor(index) {
+    super(0x21, 3, 0, index, 6);
+  }
+}
 
 // Requests device to clear error status and move to next step.
 const DFU_CLRSTATUS = 0x04;
@@ -48,9 +65,25 @@ const DFU_GETSTATE = 0x05;
 // immediately.
 const DFU_ABORT = 0x06;
 
-class DfuUsbDevice extends UsbDevice {
+class DfuUsbDevice extends _usbDevice.UsbDevice {
   constructor(device) {
     super(device);
   }
 
+  download(blockNum, index, fw) {
+    var _this = this;
+
+    return _asyncToGenerator(function* () {
+      return _this.sendRequest(new DfuDownloadRequest(blockNum, index, fw));
+    })();
+  }
+
+  getStatus(index) {
+    var _this2 = this;
+
+    return _asyncToGenerator(function* () {
+      return _this2.sendRequest(new DfuGetStatus(index));
+    })();
+  }
 }
+exports.DfuUsbDevice = DfuUsbDevice;

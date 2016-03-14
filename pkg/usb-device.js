@@ -20,8 +20,16 @@ class UsbDevice {
   constructor(device) {
     this.device = device;
     device.open();
-    this.iface = device.interface(0);
-    this.iface.claim();
+  }
+
+  claimInterface(i) {
+    device.interface(i).claim();
+  }
+
+  claimInterfaces() {
+    for (const i of device.interfaces) {
+      i.claim();
+    }
   }
 
   sendRequest(request) {

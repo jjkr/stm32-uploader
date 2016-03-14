@@ -1,3 +1,4 @@
+import {UsbDevice} from './usb-device';
 import {UsbRequest} from './usb-request';
 
 /**
@@ -24,7 +25,11 @@ const DFU_DETACH = 0x00;
 
 // Requests data transfer from Host to the device in order to load them into
 // device internal Flash. Includes also erase commands
-const DFU_DNLOAD = 0x01;
+class DfuDownloadRequest extends UsbRequest {
+  constructor(blockNum, index, fw) {
+    super(0x21, 1, blockNum, index, fw);
+  }
+}
 
 // Requests data transfer from device to Host in order to load content of device
 // internal Flash into a Host file.
@@ -33,7 +38,11 @@ const DFU_UPLOAD = 0x02;
 // Requests device to send status report to the Host (including status resulting
 // from the last request execution and the state the device will enter
 // immediately after this request).
-const DFU_GETSTATUS = 0x03;
+class DfuGetStatus extends UsbRequest {
+  constructor(index) {
+    super(0x21, 3, 0, index, 6);
+  }
+}
 
 // Requests device to clear error status and move to next step.
 const DFU_CLRSTATUS = 0x04;
@@ -46,9 +55,16 @@ const DFU_GETSTATE = 0x05;
 // immediately.
 const DFU_ABORT = 0x06;
 
-class DfuUsbDevice extends UsbDevice {
+export class DfuUsbDevice extends UsbDevice {
   constructor(device) {
     super(device);
   }
 
+  async download(blockNum, index, fw) {
+    return this.sendRequest(new DfuDownloadRequest(blockNum, index, fw));
+  }
+
+  async getStatus(index) {
+    return this.sendRequest(new DfuGetStatus(index));
+  }
 }
