@@ -36,9 +36,9 @@ async function main() {
   //  });
   //});
 
-  //const command = await dfuDevice.getCommands();
-  //console.log('command');
-  //console.log(command);
+  const command = await dfuDevice.getCommands();
+  console.log('command');
+  console.log(command);
 
   //console.log('JJK flash descriptor:');
   //console.log(usbDevice);
@@ -47,12 +47,12 @@ async function main() {
   //console.log('JJK manufacturer: ' + manufacturer);
   //console.log('JJK product: ' + product);
 
-  const flash = await dfuDevice.getFlashInfo();
-  console.log('flash');
-  console.log(flash);
+  //const flash = await dfuDevice.getFlashInfo();
+  //console.log('flash');
+  //console.log(flash);
 
-  console.log('erasing');
-  await dfuDevice.eraseAll();
+  //console.log('erasing');
+  //await dfuDevice.eraseAll();
 
   console.log('end of main');
 }

@@ -303,6 +303,9 @@ class DfuDevice {
     device.interface(0).claim();
   }
 
+  /**
+   * Detach from the bootloader and enter application code
+   */
   detach(timeout) {
     var _this = this;
 
@@ -339,15 +342,29 @@ class DfuDevice {
     return _asyncToGenerator(function* () {
       yield _this3._sendRequest(new DfuDownload(0, 0, new Buffer([DFU_STM32_ERASE])));
       const status = yield _this3.getStatus();
-      console.log('status');
-      console.log(status);
       if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
         throw Error('eraseAll - expected DNBusy state in DFU_GET_STATUS response, got: ' + status.state);
       }
+
+      yield new Promise(function (resolve, reject) {
+        setTimeout(resolve, status.delay);
+      });
+
+      const finalStatus = yield _this3.getStatus();
+      console.log(finalStatus);
     })();
   }
 
-  getCommands() {
+  /**
+   * Get a list of commands supported by this device
+   *
+   * STM32 devices will return this:
+   * Byte 1: 0x00 - Get command
+   * Byte 2: 0x21 - Set Address Pointer
+   * Byte 3: 0x41 - Erase
+   * Byte 4: 0x92 - Read Unprotect
+   */
+  getSupportedCommands() {
     var _this4 = this;
 
     return _asyncToGenerator(function* () {
@@ -355,6 +372,9 @@ class DfuDevice {
     })();
   }
 
+  /**
+   * DFU_CLEAR_STATUS
+   */
   clearStatus() {
     var _this5 = this;
 
@@ -363,6 +383,9 @@ class DfuDevice {
     })();
   }
 
+  /**
+   * DFU_GET_STATUS
+   */
   getStatus() {
     var _this6 = this;
 
