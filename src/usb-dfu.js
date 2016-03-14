@@ -134,7 +134,7 @@ class DeviceSetConfiguration extends UsbRequest {
 // Requests the device to leave DFU mode and enter the application.
 class DfuDetach extends UsbRequest {
   constructor(timeout) {
-    super(0x21, 0, timeout, 0, 0);
+    super(0x21, 0, timeout, 0, new Buffer([]));
   }
 }
 
@@ -198,7 +198,7 @@ const DFU_DEVICE_STATE_DFU_ERR = 10;
 // Requests device to clear error status and move to next step.
 class DfuClearStatus extends UsbRequest {
   constructor() {
-    super(0x21, 4, 0, 0, 0);
+    super(0x21, 4, 0, 0, new Buffer([]));
   }
 }
 
@@ -281,6 +281,10 @@ export class DfuDevice {
     device.interface(0).claim();
   }
 
+  async detach(timeout) {
+    return this._sendRequest(new DfuDetach(timeout));
+  }
+
   /**
    * Get information about the flash available on the chip
    * @return object describing the flash, e.g.
@@ -312,6 +316,10 @@ export class DfuDevice {
 
   async getCommands() {
     return this._sendRequest(new DfuUpload(0, 4));
+  }
+
+  async clearStatus() {
+    return this._sendRequest(new DfuClearStatus());
   }
 
   async getStatus() {

@@ -16,13 +16,34 @@ let main = (() => {
 
     const dfuDevice = new _usbDfu.DfuDevice(usbDevice);
 
-    const command = yield dfuDevice.getCommands();
-    console.log('command');
-    console.log(command);
+    yield dfuDevice.clearStatus();
 
     const status = yield dfuDevice.getStatus();
     console.log('status');
     console.log(status);
+
+    //console.log('sending DETACH');
+    //const detachResponse = await dfuDevice.detach();
+    //console.log('DETACH response');
+    //console.log(detachResponse);
+
+    //await new Promise((resolve, reject) => {
+    //  usbDevice.reset(err => {
+    //    if (err) {
+    //      reject(err);
+    //    } else {
+    //      resolve();
+    //    }
+    //  });
+    //});
+
+    //const command = await dfuDevice.getCommands();
+    //console.log('command');
+    //console.log(command);
+
+    const status2 = yield dfuDevice.getStatus();
+    console.log('status2');
+    console.log(status2);
 
     //console.log('JJK flash descriptor:');
     //console.log(usbDevice);

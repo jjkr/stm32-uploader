@@ -156,7 +156,7 @@ class DeviceSetConfiguration extends UsbRequest {
 // Requests the device to leave DFU mode and enter the application.
 class DfuDetach extends UsbRequest {
   constructor(timeout) {
-    super(0x21, 0, timeout, 0, 0);
+    super(0x21, 0, timeout, 0, new Buffer([]));
   }
 }
 
@@ -220,7 +220,7 @@ const DFU_DEVICE_STATE_DFU_ERR = 10;
 // Requests device to clear error status and move to next step.
 class DfuClearStatus extends UsbRequest {
   constructor() {
-    super(0x21, 4, 0, 0, 0);
+    super(0x21, 4, 0, 0, new Buffer([]));
   }
 }
 
@@ -303,6 +303,14 @@ class DfuDevice {
     device.interface(0).claim();
   }
 
+  detach(timeout) {
+    var _this = this;
+
+    return _asyncToGenerator(function* () {
+      return _this._sendRequest(new DfuDetach(timeout));
+    })();
+  }
+
   /**
    * Get information about the flash available on the chip
    * @return object describing the flash, e.g.
@@ -314,11 +322,11 @@ class DfuDevice {
    *          totalSize: 262144 } ] }
    */
   getFlashInfo() {
-    var _this = this;
+    var _this2 = this;
 
     return _asyncToGenerator(function* () {
-      const descriptorIndex = _this.device.interface(0).descriptor.iInterface;
-      return _this._getStringDescriptor(descriptorIndex).then(parseFlashDescriptor);
+      const descriptorIndex = _this2.device.interface(0).descriptor.iInterface;
+      return _this2._getStringDescriptor(descriptorIndex).then(parseFlashDescriptor);
     })();
   }
 
@@ -326,11 +334,11 @@ class DfuDevice {
    * Erase the entire flash and RAM
    */
   eraseAll() {
-    var _this2 = this;
+    var _this3 = this;
 
     return _asyncToGenerator(function* () {
-      yield _this2._sendRequest(new DfuDownload(0, 0, new Buffer([DFU_STM32_ERASE])));
-      const status = yield _this2.getStatus();
+      yield _this3._sendRequest(new DfuDownload(0, 0, new Buffer([DFU_STM32_ERASE])));
+      const status = yield _this3.getStatus();
       console.log('status');
       console.log(status);
       if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
@@ -340,18 +348,26 @@ class DfuDevice {
   }
 
   getCommands() {
-    var _this3 = this;
+    var _this4 = this;
 
     return _asyncToGenerator(function* () {
-      return _this3._sendRequest(new DfuUpload(0, 4));
+      return _this4._sendRequest(new DfuUpload(0, 4));
+    })();
+  }
+
+  clearStatus() {
+    var _this5 = this;
+
+    return _asyncToGenerator(function* () {
+      return _this5._sendRequest(new DfuClearStatus());
     })();
   }
 
   getStatus() {
-    var _this4 = this;
+    var _this6 = this;
 
     return _asyncToGenerator(function* () {
-      const response = yield _this4._sendRequest(new DfuGetStatus());
+      const response = yield _this6._sendRequest(new DfuGetStatus());
       const status = {
         status: response[0],
         delay: response[1] | response[2] << 8 | response[3] << 16,
@@ -363,24 +379,24 @@ class DfuDevice {
   }
 
   _getDescriptor(type, index) {
-    var _this5 = this;
+    var _this7 = this;
 
     return _asyncToGenerator(function* () {
-      return _this5._sendRequest(new DeviceGetDescriptor(type, index));
+      return _this7._sendRequest(new DeviceGetDescriptor(type, index));
     })();
   }
 
   _getStringDescriptor(index) {
-    var _this6 = this;
+    var _this8 = this;
 
     return _asyncToGenerator(function* () {
-      const descriptor = yield _this6._getDescriptor(DESCRIPTOR_TYPE_STRING, index);
+      const descriptor = yield _this8._getDescriptor(DESCRIPTOR_TYPE_STRING, index);
       return descriptor.toString('utf16le');
     })();
   }
 
   _sendRequest(request) {
-    var _this7 = this;
+    var _this9 = this;
 
     return _asyncToGenerator(function* () {
       console.log('usb sendRequest');
@@ -393,17 +409,17 @@ class DfuDevice {
             resolve(data);
           }
         };
-        _this7.device.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
+        _this9.device.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
       });
     })();
   }
 
   _loadAddress(address) {
-    var _this8 = this;
+    var _this10 = this;
 
     return _asyncToGenerator(function* () {
       const command = [DFU_STM32_SET_ADDRESS_POINTER, address, address >> 8, address >> 16, address >> 24];
-      _this8._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
+      _this10._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
     })();
   }
 }
