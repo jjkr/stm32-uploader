@@ -124,22 +124,25 @@ class DeviceSetConfiguration extends UsbRequest {
  * | 0010 0001b    | DFU_DETACH (0x00)    | wTimeout  | Interface | Zero    | None     |
  * | 0010 0001b    | DFU_DNLOAD (0x01)    | wBlockNum | Interface | Length  | Firmware |
  * | 1010 0001b    | DFU_UPLOAD (0x02)    | Zero      | Interface | Length  | Firmware |
- * | 0010 0001b    | DFU_GETSTATUS (0x03) | Zero      | Interface | 6       | Status   |
+ * | 1010 0001b    | DFU_GETSTATUS (0x03) | Zero      | Interface | 6       | Status   |
  * | 0010 0001b    | DFU_CLRSTATUS (0x04) | Zero      | Interface | Zero    | None     |
- * | 0010 0001b    | DFU_GETSTATE (0x05)  | Zero      | Interface | 1       | State    |
+ * | 1010 0001b    | DFU_GETSTATE (0x05)  | Zero      | Interface | 1       | State    |
  * | 0010 0001b    | DFU_ABORT (0x06)     | Zero      | Interface | Zero    | None     |
  * -------------------------------------------------------------------------------------
  */
 
 // Requests the device to leave DFU mode and enter the application.
 class DfuDetach extends UsbRequest {
-  constructor(timeout, index) {
-    super(0x21, 0, timeout, index, 0);
+  constructor(timeout) {
+    super(0x21, 0, timeout, 0, 0);
   }
 }
 
 // Requests data transfer from Host to the device in order to load them into
 // device internal Flash. Includes also erase commands
+const DFU_STM32_SET_ADDRESS_POINTER = 0x21;
+const DFU_STM32_ERASE = 0x41;
+const DFU_STM32_READ_UNPROTECT = 0x92;
 class DfuDownload extends UsbRequest {
   constructor(blockNum, index, fw) {
     super(0x21, 1, blockNum, index, fw);
@@ -149,8 +152,8 @@ class DfuDownload extends UsbRequest {
 // Requests data transfer from device to Host in order to load content of device
 // internal Flash into a Host file.
 class DfuUpload extends UsbRequest {
-  constructor(index) {
-    super(0xa1, 2, 0, index, 255);
+  constructor(value, size) {
+    super(0xa1, 2, value, 0, size);
   }
 }
 
@@ -158,70 +161,172 @@ class DfuUpload extends UsbRequest {
 // from the last request execution and the state the device will enter
 // immediately after this request).
 class DfuGetStatus extends UsbRequest {
-  constructor(index) {
-    super(0x21, 3, 0, index, 6);
+  constructor() {
+    super(0xa1, 3, 0, 0, 6);
   }
 }
 
+const DFU_STATUS_OK = 0x00;
+const DFU_STATUS_ERR_TARGET = 0x01;
+const DFU_STATUS_ERR_FILE = 0x02;
+const DFU_STATUS_ERR_WRITE = 0x03;
+const DFU_STATUS_ERR_ERASE = 0x04;
+const DFU_STATUS_ERR_CHECK_ERASE = 0x05;
+const DFU_STATUS_ERR_PROG = 0x06;
+const DFU_STATUS_ERR_VERIFY = 0x07;
+const DFU_STATUS_ERR_ADDRESS = 0x08;
+const DFU_STATUS_ERR_NOTDONE = 0x09;
+const DFU_STATUS_ERR_FIRMWARE = 0x0a;
+const DFU_STATUS_ERR_VENDOR = 0x0b;
+const DFU_STATUS_ERR_USBR = 0x0c;
+const DFU_STATUS_ERR_POR = 0x0d;
+const DFU_STATUS_ERR_UNKNOWN = 0x0e;
+const DFU_STATUS_ERR_STALLEDPKT = 0x0f;
+
+const DFU_DEVICE_STATE_APP_IDLE = 0;
+const DFU_DEVICE_STATE_APP_DETACH = 1;
+const DFU_DEVICE_STATE_DFU_IDLE = 2;
+const DFU_DEVICE_STATE_DFU_DNLOAD_SYNC  = 3;
+const DFU_DEVICE_STATE_DFU_DNBUSY  = 4;
+const DFU_DEVICE_STATE_DFU_DNLOAD_IDLE  = 5;
+const DFU_DEVICE_STATE_DFU_MANIFEST_SYNC  = 6;
+const DFU_DEVICE_STATE_DFU_MANIFEST = 7;
+const DFU_DEVICE_STATE_DFU_MANIFEST_WAIT_RESET = 8;
+const DFU_DEVICE_STATE_DFU_UPLOAD_IDLE = 9;
+const DFU_DEVICE_STATE_DFU_ERR = 10;
+
 // Requests device to clear error status and move to next step.
 class DfuClearStatus extends UsbRequest {
-  constructor(index) {
-    super(0x21, 4, 0, index, 0);
+  constructor() {
+    super(0x21, 4, 0, 0, 0);
   }
 }
 
 // Requests the device to send only the state it will enter immediately after
 // this request.
 class DfuGetState extends UsbRequest {
-  constructor(index) {
-    super(0x21, 5, 0, index, 1);
+  constructor() {
+    super(0xa1, 5, 0, 0, 1);
   }
 }
 
 // Requests device to exit the current state/operation and enter idle state
 // immediately.
 class DfuAbort extends UsbRequest {
-  constructor(index) {
-    super(0x21, 6, 0, index, 0);
+  constructor() {
+    super(0x21, 6, 0, 0, 0);
   }
 }
 
+/**
+ * Parse a flash description string from an STM32 into an object
+ *
+ * Example string:
+ * @Internal Flash  /0x08000000/128*0002Kg
+ */
+function parseFlashDescriptor(descriptor) {
+  const splitStr = descriptor.split('/');
+  if (splitStr.length < 3) {
+    throw new Error('bad format for flash descriptor: ' + descriptor);
+  }
+  if (splitStr[0].indexOf('@Internal Flash') === -1) {
+    throw new Error('Bad Flash descriptor: ' + descriptor);
+  }
+
+  const startAddress = parseInt(splitStr[1]);
+
+  const sectors = [];
+  var totalSize = 0;
+  for (const s of splitStr[2].split(',')) {
+    const spl = s.split('*');
+
+    if (spl.length < 2) {
+      throw new Error('Bad page descriptor, no asterisk: ' + s);
+    }
+
+    const numPages = parseInt(spl[0]);
+    var pageSize = parseInt(spl[1]);
+
+    switch (spl[1].slice(-2, -1)[0]) {
+      case 'M':
+        pageSize *= 1024 * 1024;
+        break;
+      case 'K':
+        pageSize *= 1024;
+        break;
+      default:
+        throw new Error('Bad pageSize: ' + spl[1]);
+    }
+
+    const sectorSize = numPages * pageSize;
+    sectors.push({
+      numPages: numPages,
+      pageSize: pageSize,
+      startAddress: startAddress + totalSize,
+      totalSize: sectorSize
+    });
+    totalSize += sectorSize;
+  }
+
+  return { startAddress: startAddress, sectors: sectors }
+}
 
 /**
  * DfuDevice implements the USB DFU protocol for STM32 bootloaders
  */
 export class DfuDevice {
-  constructor(dfuDevice) {
-    this.dfuDevice = dfuDevice;
-    dfuDevice.open();
-    dfuDevice.claimInterface(0);
+  constructor(device) {
+    this.device = device;
+    device.open();
+    device.interface(0).claim();
   }
 
   /**
    * Get information about the flash available on the chip
    * @return object describing the flash, e.g.
-   *
+   *  { startAddress: 0x08000000,
+   *    sectors: 
+   *      [ { numPages: 128,
+   *          pageSize: 2048,
+   *          startAddress: 0x08000000,
+   *          totalSize: 262144 } ] }
    */
   async getFlashInfo() {
     const descriptorIndex = this.device.interface(0).descriptor.iInterface;
-    const flashDescriptor = await this.getStringDescriptor(descriptorIndex);
-    return this._parseFlashDescriptor(flashDescriptor);
+    return this._getStringDescriptor(descriptorIndex).then(parseFlashDescriptor);
   }
 
   /**
    * Erase the entire flash and RAM
    */
   async eraseAll() {
-    try {
-      await this.dfuDevice.download(0, 0, new Buffer([DFU_STM32_ERASE]));
-    } catch (err) {
-      // TODO why does this throw?
-      console.log('caught expected dev.download err: ' + err);
+    await this._sendRequest(new DfuDownload(0, 0, new Buffer([DFU_STM32_ERASE])));
+    const status = await this.getStatus();
+    console.log('status');
+    console.log(status);
+    if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
+      throw Error('eraseAll - expected DNBusy state in DFU_GET_STATUS response, got: ' +
+                  status.state);
     }
   }
 
+  async getCommands() {
+    return this._sendRequest(new DfuUpload(0, 4));
+  }
+
+  async getStatus() {
+    const response = await this._sendRequest(new DfuGetStatus());
+    const status = {
+      status: response[0],
+      delay: response[1] | response[2] << 8 | response[3] << 16,
+      state: response[4],
+      iString: response[5]
+    };
+    return status;
+  }
+
   async _getDescriptor(type, index) {
-    return this.sendRequest(new DeviceGetDescriptor(type, index));
+    return this._sendRequest(new DeviceGetDescriptor(type, index));
   }
 
   async _getStringDescriptor(index) {
@@ -230,6 +335,8 @@ export class DfuDevice {
   }
 
   async _sendRequest(request) {
+    console.log('usb sendRequest');
+    console.log(request);
     return new Promise((resolve, reject) => {
       const cb = (err, data) => {
         if (err) {
@@ -243,57 +350,10 @@ export class DfuDevice {
     });
   }
 
-  /**
-   * Parse a flash description string from an STM32 into an object
-   *
-   * Example string:
-   * @Internal Flash  /0x08000000/128*0002Kg
-   */
-  _parseFlashDescriptor(descriptor) {
-    const splitStr = descriptor.split('/');
-    if (splitStr.length < 3) {
-      throw new Error('bad format for flash descriptor: ' + descriptor);
-    }
-    if (splitStr[0].indexOf('@Internal Flash') === -1) {
-      throw new Error('Bad Flash descriptor: ' + descriptor);
-    }
-
-    const startAddress = parseInt(splitStr[1]);
-
-    const sectors = [];
-    var totalSize = 0;
-    for (const s of splitStr[2].split(',')) {
-      const spl = s.split('*');
-
-      if (spl.length < 2) {
-        throw new Error('Bad page descriptor, no asterisk: ' + s);
-      }
-
-      const numPages = parseInt(spl[0]);
-      var pageSize = parseInt(spl[1]);
-
-      switch (spl[1].slice(-2, -1)[0]) {
-        case 'M':
-          pageSize *= 1024 * 1024;
-          break;
-        case 'K':
-          pageSize *= 1024;
-          break;
-        default:
-          throw new Error('Bad pageSize: ' + spl[1]);
-      }
-
-      const sectorSize = numPages * pageSize;
-      sectors.push({
-        numPages: numPages,
-        pageSize: pageSize,
-        startAddress: startAddress + totalSize,
-        totalSize: sectorSize
-      });
-      totalSize += sectorSize;
-    }
-
-    return { startAddress: startAddress, sectors: sectors }
+  async _loadAddress(address) {
+    const command =
+        [DFU_STM32_SET_ADDRESS_POINTER, address, address >> 8, address >> 16, address >> 24];
+    this._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
   }
 }
 

@@ -6,36 +6,37 @@ let main = (() => {
 
     const STMICRO_VENDOR_ID = 0x0483;
     const devices = usb.getDeviceList();
-    for (const d of devices) {
-      const usbDev = new UsbDevice(d);
-      console.log(usbDev.getManufacturer());
-    }
-    const stm32Device = devices.find(function (d) {
+    const usbDevice = devices.find(function (d) {
       return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID;
     });
 
-    if (!stm32Device) {
-      throw Error('Missing STM32 device');
+    if (!usbDevice) {
+      throw Error('Missing STM32 USB device');
     }
 
-    //console.log('iface');
-    //console.log(iface);
+    const dfuDevice = new _usbDfu.DfuDevice(usbDevice);
 
-    const dev = new Stm32UsbDfuDevice(new _usbDfu.DfuUsbDevice(stm32Device));
+    const command = yield dfuDevice.getCommands();
+    console.log('command');
+    console.log(command);
+
+    const status = yield dfuDevice.getStatus();
+    console.log('status');
+    console.log(status);
 
     //console.log('JJK flash descriptor:');
-    //console.log(stm32Device);
-    //const manufacturer = await dev.getManufacturer();
-    //const product = await dev.getProduct();
+    //console.log(usbDevice);
+    //const manufacturer = await dfuDevice.getManufacturer();
+    //const product = await dfuDevice.getProduct();
     //console.log('JJK manufacturer: ' + manufacturer);
     //console.log('JJK product: ' + product);
 
-    const flash = yield dev.getFlashInfo();
+    const flash = yield dfuDevice.getFlashInfo();
     console.log('flash');
     console.log(flash);
 
     console.log('erasing');
-    yield dev.eraseAll();
+    yield dfuDevice.eraseAll();
 
     console.log('end of main');
   });
@@ -50,10 +51,6 @@ var _usb = require('usb');
 var usb = _interopRequireWildcard(_usb);
 
 var _usbDfu = require('./usb-dfu');
-
-var _usbRequest = require('./usb-request');
-
-var usbRequest = _interopRequireWildcard(_usbRequest);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 

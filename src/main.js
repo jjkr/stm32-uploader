@@ -1,41 +1,41 @@
 import * as usb from 'usb';
-import {DfuUsbDevice} from './usb-dfu';
-import * as usbRequest from './usb-request';
+import {DfuDevice} from './usb-dfu';
 
 async function main() {
   //usb.setDebugLevel(4);  // debug
 
   const STMICRO_VENDOR_ID = 0x0483;
   const devices = usb.getDeviceList();
-  for (const d of devices) {
-    const usbDev = new UsbDevice(d);
-    console.log(usbDev.getManufacturer());
-  }
-  const stm32Device =
+  const usbDevice =
       devices.find(d => { return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID; });
 
-  if (!stm32Device) {
-    throw Error('Missing STM32 device');
+  if (!usbDevice) {
+    throw Error('Missing STM32 USB device');
   }
 
-  //console.log('iface');
-  //console.log(iface);
+  const dfuDevice = new DfuDevice(usbDevice);
 
-  const dev = new Stm32UsbDfuDevice(new DfuUsbDevice(stm32Device));
+  const command = await dfuDevice.getCommands();
+  console.log('command');
+  console.log(command);
+
+  const status = await dfuDevice.getStatus();
+  console.log('status');
+  console.log(status);
 
   //console.log('JJK flash descriptor:');
-  //console.log(stm32Device);
-  //const manufacturer = await dev.getManufacturer();
-  //const product = await dev.getProduct();
+  //console.log(usbDevice);
+  //const manufacturer = await dfuDevice.getManufacturer();
+  //const product = await dfuDevice.getProduct();
   //console.log('JJK manufacturer: ' + manufacturer);
   //console.log('JJK product: ' + product);
 
-  const flash = await dev.getFlashInfo();
+  const flash = await dfuDevice.getFlashInfo();
   console.log('flash');
   console.log(flash);
 
   console.log('erasing');
-  await dev.eraseAll();
+  await dfuDevice.eraseAll();
   
 
   console.log('end of main');
