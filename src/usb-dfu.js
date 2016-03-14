@@ -166,34 +166,34 @@ class DfuGetStatus extends UsbRequest {
   }
 }
 
-const DFU_STATUS_OK = 0x00;
-const DFU_STATUS_ERR_TARGET = 0x01;
-const DFU_STATUS_ERR_FILE = 0x02;
-const DFU_STATUS_ERR_WRITE = 0x03;
-const DFU_STATUS_ERR_ERASE = 0x04;
-const DFU_STATUS_ERR_CHECK_ERASE = 0x05;
-const DFU_STATUS_ERR_PROG = 0x06;
-const DFU_STATUS_ERR_VERIFY = 0x07;
-const DFU_STATUS_ERR_ADDRESS = 0x08;
-const DFU_STATUS_ERR_NOTDONE = 0x09;
-const DFU_STATUS_ERR_FIRMWARE = 0x0a;
-const DFU_STATUS_ERR_VENDOR = 0x0b;
-const DFU_STATUS_ERR_USBR = 0x0c;
-const DFU_STATUS_ERR_POR = 0x0d;
-const DFU_STATUS_ERR_UNKNOWN = 0x0e;
-const DFU_STATUS_ERR_STALLEDPKT = 0x0f;
+export const DFU_STATUS_OK = 0x00;
+export const DFU_STATUS_ERR_TARGET = 0x01;
+export const DFU_STATUS_ERR_FILE = 0x02;
+export const DFU_STATUS_ERR_WRITE = 0x03;
+export const DFU_STATUS_ERR_ERASE = 0x04;
+export const DFU_STATUS_ERR_CHECK_ERASE = 0x05;
+export const DFU_STATUS_ERR_PROG = 0x06;
+export const DFU_STATUS_ERR_VERIFY = 0x07;
+export const DFU_STATUS_ERR_ADDRESS = 0x08;
+export const DFU_STATUS_ERR_NOTDONE = 0x09;
+export const DFU_STATUS_ERR_FIRMWARE = 0x0a;
+export const DFU_STATUS_ERR_VENDOR = 0x0b;
+export const DFU_STATUS_ERR_USBR = 0x0c;
+export const DFU_STATUS_ERR_POR = 0x0d;
+export const DFU_STATUS_ERR_UNKNOWN = 0x0e;
+export const DFU_STATUS_ERR_STALLEDPKT = 0x0f;
 
-const DFU_DEVICE_STATE_APP_IDLE = 0;
-const DFU_DEVICE_STATE_APP_DETACH = 1;
-const DFU_DEVICE_STATE_DFU_IDLE = 2;
-const DFU_DEVICE_STATE_DFU_DNLOAD_SYNC  = 3;
-const DFU_DEVICE_STATE_DFU_DNBUSY  = 4;
-const DFU_DEVICE_STATE_DFU_DNLOAD_IDLE  = 5;
-const DFU_DEVICE_STATE_DFU_MANIFEST_SYNC  = 6;
-const DFU_DEVICE_STATE_DFU_MANIFEST = 7;
-const DFU_DEVICE_STATE_DFU_MANIFEST_WAIT_RESET = 8;
-const DFU_DEVICE_STATE_DFU_UPLOAD_IDLE = 9;
-const DFU_DEVICE_STATE_DFU_ERR = 10;
+export const DFU_DEVICE_STATE_APP_IDLE = 0;
+export const DFU_DEVICE_STATE_APP_DETACH = 1;
+export const DFU_DEVICE_STATE_DFU_IDLE = 2;
+export const DFU_DEVICE_STATE_DFU_DNLOAD_SYNC  = 3;
+export const DFU_DEVICE_STATE_DFU_DNBUSY  = 4;
+export const DFU_DEVICE_STATE_DFU_DNLOAD_IDLE  = 5;
+export const DFU_DEVICE_STATE_DFU_MANIFEST_SYNC  = 6;
+export const DFU_DEVICE_STATE_DFU_MANIFEST = 7;
+export const DFU_DEVICE_STATE_DFU_MANIFEST_WAIT_RESET = 8;
+export const DFU_DEVICE_STATE_DFU_UPLOAD_IDLE = 9;
+export const DFU_DEVICE_STATE_DFU_ERR = 10;
 
 // Requests device to clear error status and move to next step.
 class DfuClearStatus extends UsbRequest {
@@ -276,6 +276,7 @@ function parseFlashDescriptor(descriptor) {
  */
 export class DfuDevice {
   constructor(device) {
+    this.MAX_BLOCK_SIZE = 2048;
     this.device = device;
     device.open();
     device.interface(0).claim();
@@ -319,7 +320,7 @@ export class DfuDevice {
     });
 
     const finalStatus = await this.getStatus();
-    console.log(finalStatus);
+    //console.log(finalStatus);
   }
 
   /**
@@ -333,6 +334,13 @@ export class DfuDevice {
    */
   async getSupportedCommands() {
     return this._sendRequest(new DfuUpload(0, 4));
+  }
+
+  async resetState() {
+    const status = await this.getStatus();
+    if (status.state !== DFU_DEVICE_STATE_DFU_IDLE) {
+      return await this.clearStatus();
+    }
   }
 
   /**

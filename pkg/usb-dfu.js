@@ -188,34 +188,34 @@ class DfuGetStatus extends UsbRequest {
   }
 }
 
-const DFU_STATUS_OK = 0x00;
-const DFU_STATUS_ERR_TARGET = 0x01;
-const DFU_STATUS_ERR_FILE = 0x02;
-const DFU_STATUS_ERR_WRITE = 0x03;
-const DFU_STATUS_ERR_ERASE = 0x04;
-const DFU_STATUS_ERR_CHECK_ERASE = 0x05;
-const DFU_STATUS_ERR_PROG = 0x06;
-const DFU_STATUS_ERR_VERIFY = 0x07;
-const DFU_STATUS_ERR_ADDRESS = 0x08;
-const DFU_STATUS_ERR_NOTDONE = 0x09;
-const DFU_STATUS_ERR_FIRMWARE = 0x0a;
-const DFU_STATUS_ERR_VENDOR = 0x0b;
-const DFU_STATUS_ERR_USBR = 0x0c;
-const DFU_STATUS_ERR_POR = 0x0d;
-const DFU_STATUS_ERR_UNKNOWN = 0x0e;
-const DFU_STATUS_ERR_STALLEDPKT = 0x0f;
+const DFU_STATUS_OK = exports.DFU_STATUS_OK = 0x00;
+const DFU_STATUS_ERR_TARGET = exports.DFU_STATUS_ERR_TARGET = 0x01;
+const DFU_STATUS_ERR_FILE = exports.DFU_STATUS_ERR_FILE = 0x02;
+const DFU_STATUS_ERR_WRITE = exports.DFU_STATUS_ERR_WRITE = 0x03;
+const DFU_STATUS_ERR_ERASE = exports.DFU_STATUS_ERR_ERASE = 0x04;
+const DFU_STATUS_ERR_CHECK_ERASE = exports.DFU_STATUS_ERR_CHECK_ERASE = 0x05;
+const DFU_STATUS_ERR_PROG = exports.DFU_STATUS_ERR_PROG = 0x06;
+const DFU_STATUS_ERR_VERIFY = exports.DFU_STATUS_ERR_VERIFY = 0x07;
+const DFU_STATUS_ERR_ADDRESS = exports.DFU_STATUS_ERR_ADDRESS = 0x08;
+const DFU_STATUS_ERR_NOTDONE = exports.DFU_STATUS_ERR_NOTDONE = 0x09;
+const DFU_STATUS_ERR_FIRMWARE = exports.DFU_STATUS_ERR_FIRMWARE = 0x0a;
+const DFU_STATUS_ERR_VENDOR = exports.DFU_STATUS_ERR_VENDOR = 0x0b;
+const DFU_STATUS_ERR_USBR = exports.DFU_STATUS_ERR_USBR = 0x0c;
+const DFU_STATUS_ERR_POR = exports.DFU_STATUS_ERR_POR = 0x0d;
+const DFU_STATUS_ERR_UNKNOWN = exports.DFU_STATUS_ERR_UNKNOWN = 0x0e;
+const DFU_STATUS_ERR_STALLEDPKT = exports.DFU_STATUS_ERR_STALLEDPKT = 0x0f;
 
-const DFU_DEVICE_STATE_APP_IDLE = 0;
-const DFU_DEVICE_STATE_APP_DETACH = 1;
-const DFU_DEVICE_STATE_DFU_IDLE = 2;
-const DFU_DEVICE_STATE_DFU_DNLOAD_SYNC = 3;
-const DFU_DEVICE_STATE_DFU_DNBUSY = 4;
-const DFU_DEVICE_STATE_DFU_DNLOAD_IDLE = 5;
-const DFU_DEVICE_STATE_DFU_MANIFEST_SYNC = 6;
-const DFU_DEVICE_STATE_DFU_MANIFEST = 7;
-const DFU_DEVICE_STATE_DFU_MANIFEST_WAIT_RESET = 8;
-const DFU_DEVICE_STATE_DFU_UPLOAD_IDLE = 9;
-const DFU_DEVICE_STATE_DFU_ERR = 10;
+const DFU_DEVICE_STATE_APP_IDLE = exports.DFU_DEVICE_STATE_APP_IDLE = 0;
+const DFU_DEVICE_STATE_APP_DETACH = exports.DFU_DEVICE_STATE_APP_DETACH = 1;
+const DFU_DEVICE_STATE_DFU_IDLE = exports.DFU_DEVICE_STATE_DFU_IDLE = 2;
+const DFU_DEVICE_STATE_DFU_DNLOAD_SYNC = exports.DFU_DEVICE_STATE_DFU_DNLOAD_SYNC = 3;
+const DFU_DEVICE_STATE_DFU_DNBUSY = exports.DFU_DEVICE_STATE_DFU_DNBUSY = 4;
+const DFU_DEVICE_STATE_DFU_DNLOAD_IDLE = exports.DFU_DEVICE_STATE_DFU_DNLOAD_IDLE = 5;
+const DFU_DEVICE_STATE_DFU_MANIFEST_SYNC = exports.DFU_DEVICE_STATE_DFU_MANIFEST_SYNC = 6;
+const DFU_DEVICE_STATE_DFU_MANIFEST = exports.DFU_DEVICE_STATE_DFU_MANIFEST = 7;
+const DFU_DEVICE_STATE_DFU_MANIFEST_WAIT_RESET = exports.DFU_DEVICE_STATE_DFU_MANIFEST_WAIT_RESET = 8;
+const DFU_DEVICE_STATE_DFU_UPLOAD_IDLE = exports.DFU_DEVICE_STATE_DFU_UPLOAD_IDLE = 9;
+const DFU_DEVICE_STATE_DFU_ERR = exports.DFU_DEVICE_STATE_DFU_ERR = 10;
 
 // Requests device to clear error status and move to next step.
 class DfuClearStatus extends UsbRequest {
@@ -298,6 +298,7 @@ function parseFlashDescriptor(descriptor) {
  */
 class DfuDevice {
   constructor(device) {
+    this.MAX_BLOCK_SIZE = 2048;
     this.device = device;
     device.open();
     device.interface(0).claim();
@@ -351,7 +352,7 @@ class DfuDevice {
       });
 
       const finalStatus = yield _this3.getStatus();
-      console.log(finalStatus);
+      //console.log(finalStatus);
     })();
   }
 
@@ -372,14 +373,25 @@ class DfuDevice {
     })();
   }
 
+  resetState() {
+    var _this5 = this;
+
+    return _asyncToGenerator(function* () {
+      const status = yield _this5.getStatus();
+      if (status.state !== DFU_DEVICE_STATE_DFU_IDLE) {
+        return yield _this5.clearStatus();
+      }
+    })();
+  }
+
   /**
    * DFU_CLEAR_STATUS
    */
   clearStatus() {
-    var _this5 = this;
+    var _this6 = this;
 
     return _asyncToGenerator(function* () {
-      return _this5._sendRequest(new DfuClearStatus());
+      return _this6._sendRequest(new DfuClearStatus());
     })();
   }
 
@@ -387,10 +399,10 @@ class DfuDevice {
    * DFU_GET_STATUS
    */
   getStatus() {
-    var _this6 = this;
+    var _this7 = this;
 
     return _asyncToGenerator(function* () {
-      const response = yield _this6._sendRequest(new DfuGetStatus());
+      const response = yield _this7._sendRequest(new DfuGetStatus());
       const status = {
         status: response[0],
         delay: response[1] | response[2] << 8 | response[3] << 16,
@@ -402,24 +414,24 @@ class DfuDevice {
   }
 
   _getDescriptor(type, index) {
-    var _this7 = this;
+    var _this8 = this;
 
     return _asyncToGenerator(function* () {
-      return _this7._sendRequest(new DeviceGetDescriptor(type, index));
+      return _this8._sendRequest(new DeviceGetDescriptor(type, index));
     })();
   }
 
   _getStringDescriptor(index) {
-    var _this8 = this;
+    var _this9 = this;
 
     return _asyncToGenerator(function* () {
-      const descriptor = yield _this8._getDescriptor(DESCRIPTOR_TYPE_STRING, index);
+      const descriptor = yield _this9._getDescriptor(DESCRIPTOR_TYPE_STRING, index);
       return descriptor.toString('utf16le');
     })();
   }
 
   _sendRequest(request) {
-    var _this9 = this;
+    var _this10 = this;
 
     return _asyncToGenerator(function* () {
       console.log('usb sendRequest');
@@ -432,17 +444,17 @@ class DfuDevice {
             resolve(data);
           }
         };
-        _this9.device.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
+        _this10.device.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
       });
     })();
   }
 
   _loadAddress(address) {
-    var _this10 = this;
+    var _this11 = this;
 
     return _asyncToGenerator(function* () {
       const command = [DFU_STM32_SET_ADDRESS_POINTER, address, address >> 8, address >> 16, address >> 24];
-      _this10._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
+      _this11._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
     })();
   }
 }

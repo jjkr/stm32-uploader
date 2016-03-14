@@ -1,9 +1,7 @@
 import * as usb from 'usb';
-import {DfuDevice} from './usb-dfu';
+import * as dfu from './usb-dfu';
 
-async function main() {
-  //usb.setDebugLevel(4);  // debug
-
+function getDevice() {
   const STMICRO_VENDOR_ID = 0x0483;
   const devices = usb.getDeviceList();
   const usbDevice =
@@ -13,46 +11,14 @@ async function main() {
     throw Error('Missing STM32 USB device');
   }
 
-  const dfuDevice = new DfuDevice(usbDevice);
+  return usbDevice;
+}
 
-  await dfuDevice.clearStatus();
+async function main() {
+  //usb.setDebugLevel(4);  // debug
 
-  const status = await dfuDevice.getStatus();
-  console.log('status');
-  console.log(status);
-
-  //console.log('sending DETACH');
-  //const detachResponse = await dfuDevice.detach();
-  //console.log('DETACH response');
-  //console.log(detachResponse);
-
-  //await new Promise((resolve, reject) => {
-  //  usbDevice.reset(err => {
-  //    if (err) {
-  //      reject(err);
-  //    } else {
-  //      resolve();
-  //    }
-  //  });
-  //});
-
-  const command = await dfuDevice.getCommands();
-  console.log('command');
-  console.log(command);
-
-  //console.log('JJK flash descriptor:');
-  //console.log(usbDevice);
-  //const manufacturer = await dfuDevice.getManufacturer();
-  //const product = await dfuDevice.getProduct();
-  //console.log('JJK manufacturer: ' + manufacturer);
-  //console.log('JJK product: ' + product);
-
-  //const flash = await dfuDevice.getFlashInfo();
-  //console.log('flash');
-  //console.log(flash);
-
-  //console.log('erasing');
-  //await dfuDevice.eraseAll();
+  const device = new dfu.DfuDevice(getDevice());
+  await device.resetState();
 
   console.log('end of main');
 }
