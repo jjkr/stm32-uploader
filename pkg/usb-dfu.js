@@ -351,8 +351,7 @@ class DfuDevice {
         setTimeout(resolve, status.delay);
       });
 
-      const finalStatus = yield _this3.getStatus();
-      //console.log(finalStatus);
+      yield _this3.getStatus();
     })();
   }
 

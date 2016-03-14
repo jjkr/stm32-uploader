@@ -319,8 +319,7 @@ export class DfuDevice {
       setTimeout(resolve, status.delay);
     });
 
-    const finalStatus = await this.getStatus();
-    //console.log(finalStatus);
+    await this.getStatus();
   }
 
   /**
