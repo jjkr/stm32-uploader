@@ -106,3 +106,5 @@ export class DeviceGetConfiguration extends UsbRequest {
 export class DeviceSetConfiguration extends UsbRequest {
   constructor(val) { super(0x80, 8, val, 0, 0); }
 }
+
+

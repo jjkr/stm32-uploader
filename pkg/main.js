@@ -6,6 +6,10 @@ let main = (() => {
 
     const STMICRO_VENDOR_ID = 0x0483;
     const devices = usb.getDeviceList();
+    for (const d of devices) {
+      const usbDev = new UsbDevice(d);
+      console.log(usbDev.getManufacturer());
+    }
     const stm32Device = devices.find(function (d) {
       return d.deviceDescriptor.idVendor === STMICRO_VENDOR_ID;
     });
@@ -14,23 +18,17 @@ let main = (() => {
       throw Error('Missing STM32 device');
     }
 
-    console.log('opening device');
-    stm32Device.open();
-
-    const iface = stm32Device.interface(0);
-
     //console.log('iface');
     //console.log(iface);
 
-    const flashDescriptorIndex = iface.descriptor.iInterface;
-    const dev = new _usbStm32Dfu.Stm32UsbDfuDevice(new _usbDfu.DfuUsbDevice(stm32Device));
+    const dev = new Stm32UsbDfuDevice(new _usbDfu.DfuUsbDevice(stm32Device));
 
     //console.log('JJK flash descriptor:');
     //console.log(stm32Device);
-    const manufacturer = yield dev.getManufacturer();
-    const product = yield dev.getProduct();
-    console.log('JJK manufacturer: ' + manufacturer);
-    console.log('JJK product: ' + product);
+    //const manufacturer = await dev.getManufacturer();
+    //const product = await dev.getProduct();
+    //console.log('JJK manufacturer: ' + manufacturer);
+    //console.log('JJK product: ' + product);
 
     const flash = yield dev.getFlashInfo();
     console.log('flash');
@@ -50,8 +48,6 @@ let main = (() => {
 var _usb = require('usb');
 
 var usb = _interopRequireWildcard(_usb);
-
-var _usbStm32Dfu = require('./usb-stm32-dfu');
 
 var _usbDfu = require('./usb-dfu');
 

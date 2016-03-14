@@ -9,6 +9,10 @@ export class UsbDevice {
     device.open();
   }
 
+  open() {
+    this.device.open();
+  }
+
   claimInterface(i) {
     device.interface(i).claim();
   }
@@ -41,4 +45,9 @@ export class UsbDevice {
     const descriptor = await this.getDescriptor(usbRequest.DESCRIPTOR_TYPE_STRING, index);
     return descriptor.toString('utf16le');
   }
+
+  async getManufacturer() {
+    return this.getStringDescriptor(this.deviceDescriptor.iManufacturer);
+  }
+
 }

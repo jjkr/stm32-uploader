@@ -22,6 +22,10 @@ class UsbDevice {
     device.open();
   }
 
+  open() {
+    this.device.open();
+  }
+
   claimInterface(i) {
     device.interface(i).claim();
   }
@@ -65,5 +69,14 @@ class UsbDevice {
       return descriptor.toString('utf16le');
     })();
   }
+
+  getManufacturer() {
+    var _this4 = this;
+
+    return _asyncToGenerator(function* () {
+      return _this4.getStringDescriptor(_this4.deviceDescriptor.iManufacturer);
+    })();
+  }
+
 }
 exports.UsbDevice = UsbDevice;

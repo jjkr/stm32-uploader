@@ -10,38 +10,30 @@ const DFU_STM32_SET_ADDRESS_POINTER = 0x21;
 const DFU_STM32_ERASE = 0x41;
 const DFU_STM32_READ_UNPROTECT = 0x92;
 
-class Stm32UsbDfuDevice {
+class UsbDfuStm32Device {
   constructor(dfuDevice) {
     this.dfuDevice = dfuDevice;
-  }
-
-  getManufacturer() {
-    var _this = this;
-
-    return _asyncToGenerator(function* () {
-      const manufacturerIndex = _this.dfuDevice.device.deviceDescriptor.iManufacturer;
-      const manufacturer = yield _this.dfuDevice.getStringDescriptor(manufacturerIndex);
-      return manufacturer.slice(1);
-    })();
+    dfuDevice.open();
+    dfuDevice.claimInterface(0);
   }
 
   getProduct() {
-    var _this2 = this;
+    var _this = this;
 
     return _asyncToGenerator(function* () {
-      const productIndex = _this2.dfuDevice.device.deviceDescriptor.iProduct;
-      const product = yield _this2.dfuDevice.getStringDescriptor(productIndex);
+      const productIndex = _this.dfuDevice.device.deviceDescriptor.iProduct;
+      const product = yield _this.dfuDevice.getStringDescriptor(productIndex);
       return product.slice(1);
     })();
   }
 
   getFlashInfo() {
-    var _this3 = this;
+    var _this2 = this;
 
     return _asyncToGenerator(function* () {
-      const descriptorIndex = _this3.dfuDevice.device.interface(0).descriptor.iInterface;
-      const flashDescriptor = yield _this3.dfuDevice.getStringDescriptor(descriptorIndex);
-      return _this3._parseFlashDescriptor(flashDescriptor);
+      const descriptorIndex = _this2.dfuDevice.device.interface(0).descriptor.iInterface;
+      const flashDescriptor = yield _this2.dfuDevice.getStringDescriptor(descriptorIndex);
+      return _this2._parseFlashDescriptor(flashDescriptor);
     })();
   }
 
@@ -49,11 +41,11 @@ class Stm32UsbDfuDevice {
    * Erase the entire flash and RAM
    */
   eraseAll() {
-    var _this4 = this;
+    var _this3 = this;
 
     return _asyncToGenerator(function* () {
       try {
-        yield _this4.dfuDevice.download(0, 0, new Buffer([DFU_STM32_ERASE]));
+        yield _this3.dfuDevice.download(0, 0, new Buffer([DFU_STM32_ERASE]));
       } catch (err) {
         // expect a busy here
         console.log('caught expected dev.download err: ' + err);
@@ -114,4 +106,4 @@ class Stm32UsbDfuDevice {
     return { startAddress: startAddress, sectors: sectors };
   }
 }
-exports.Stm32UsbDfuDevice = Stm32UsbDfuDevice;
+exports.UsbDfuStm32Device = UsbDfuStm32Device;
