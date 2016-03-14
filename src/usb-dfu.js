@@ -276,10 +276,11 @@ function parseFlashDescriptor(descriptor) {
  */
 export class DfuDevice {
   constructor(device) {
-    this.MAX_BLOCK_SIZE = 2048;
+    this.MAX_PAGE_SIZE = 2048;
     this.device = device;
     device.open();
-    device.interface(0).claim();
+    this.iface = device.interface(0);
+    this.iface.claim();
   }
 
   /**
@@ -300,8 +301,9 @@ export class DfuDevice {
    *          totalSize: 262144 } ] }
    */
   async getFlashInfo() {
-    const descriptorIndex = this.device.interface(0).descriptor.iInterface;
-    return this._getStringDescriptor(descriptorIndex).then(parseFlashDescriptor);
+    const descriptorIndex = this.iface.descriptor.iInterface;
+    const flashDescriptor = await this._getStringDescriptor(descriptorIndex);
+    return parseFlashDescriptor(flashDescriptor);
   }
 
   /**
@@ -309,17 +311,7 @@ export class DfuDevice {
    */
   async eraseAll() {
     await this._sendRequest(new DfuDownload(0, 0, new Buffer([DFU_STM32_ERASE])));
-    const status = await this.getStatus();
-    if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
-      throw Error('eraseAll - expected DNBusy state in DFU_GET_STATUS response, got: ' +
-                  status.state);
-    }
-
-    await new Promise((resolve, reject) => {
-      setTimeout(resolve, status.delay);
-    });
-
-    await this.getStatus();
+    await getStatusAndWait();
   }
 
   /**
@@ -361,6 +353,23 @@ export class DfuDevice {
       iString: response[5]
     };
     return status;
+  }
+
+  /**
+   * Send a getStatus and wait if given DFU_DNBUSY
+   */
+  async getStatusAndWait() {
+    const status = await this.getStatus();
+    if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
+      throw Error('eraseAll - expected DNBusy state in DFU_GET_STATUS response, got: ' +
+                  status.state);
+    }
+
+    await new Promise((resolve, reject) => {
+      setTimeout(resolve, status.delay);
+    });
+
+    return this.getStatus();
   }
 
   async _getDescriptor(type, index) {

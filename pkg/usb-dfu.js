@@ -298,10 +298,11 @@ function parseFlashDescriptor(descriptor) {
  */
 class DfuDevice {
   constructor(device) {
-    this.MAX_BLOCK_SIZE = 2048;
+    this.MAX_PAGE_SIZE = 2048;
     this.device = device;
     device.open();
-    device.interface(0).claim();
+    this.iface = device.interface(0);
+    this.iface.claim();
   }
 
   /**
@@ -329,8 +330,9 @@ class DfuDevice {
     var _this2 = this;
 
     return _asyncToGenerator(function* () {
-      const descriptorIndex = _this2.device.interface(0).descriptor.iInterface;
-      return _this2._getStringDescriptor(descriptorIndex).then(parseFlashDescriptor);
+      const descriptorIndex = _this2.iface.descriptor.iInterface;
+      const flashDescriptor = yield _this2._getStringDescriptor(descriptorIndex);
+      return parseFlashDescriptor(flashDescriptor);
     })();
   }
 
@@ -342,16 +344,7 @@ class DfuDevice {
 
     return _asyncToGenerator(function* () {
       yield _this3._sendRequest(new DfuDownload(0, 0, new Buffer([DFU_STM32_ERASE])));
-      const status = yield _this3.getStatus();
-      if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
-        throw Error('eraseAll - expected DNBusy state in DFU_GET_STATUS response, got: ' + status.state);
-      }
-
-      yield new Promise(function (resolve, reject) {
-        setTimeout(resolve, status.delay);
-      });
-
-      yield _this3.getStatus();
+      yield getStatusAndWait();
     })();
   }
 
@@ -412,25 +405,45 @@ class DfuDevice {
     })();
   }
 
-  _getDescriptor(type, index) {
+  /**
+   * Send a getStatus and wait if given DFU_DNBUSY
+   */
+  getStatusAndWait() {
     var _this8 = this;
 
     return _asyncToGenerator(function* () {
-      return _this8._sendRequest(new DeviceGetDescriptor(type, index));
+      const status = yield _this8.getStatus();
+      if (status.state !== DFU_DEVICE_STATE_DFU_DNBUSY) {
+        throw Error('eraseAll - expected DNBusy state in DFU_GET_STATUS response, got: ' + status.state);
+      }
+
+      yield new Promise(function (resolve, reject) {
+        setTimeout(resolve, status.delay);
+      });
+
+      return _this8.getStatus();
+    })();
+  }
+
+  _getDescriptor(type, index) {
+    var _this9 = this;
+
+    return _asyncToGenerator(function* () {
+      return _this9._sendRequest(new DeviceGetDescriptor(type, index));
     })();
   }
 
   _getStringDescriptor(index) {
-    var _this9 = this;
+    var _this10 = this;
 
     return _asyncToGenerator(function* () {
-      const descriptor = yield _this9._getDescriptor(DESCRIPTOR_TYPE_STRING, index);
+      const descriptor = yield _this10._getDescriptor(DESCRIPTOR_TYPE_STRING, index);
       return descriptor.toString('utf16le');
     })();
   }
 
   _sendRequest(request) {
-    var _this10 = this;
+    var _this11 = this;
 
     return _asyncToGenerator(function* () {
       console.log('usb sendRequest');
@@ -443,17 +456,17 @@ class DfuDevice {
             resolve(data);
           }
         };
-        _this10.device.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
+        _this11.device.controlTransfer(request.requestType, request.request, request.value, request.index, request.dataOrLength, cb);
       });
     })();
   }
 
   _loadAddress(address) {
-    var _this11 = this;
+    var _this12 = this;
 
     return _asyncToGenerator(function* () {
       const command = [DFU_STM32_SET_ADDRESS_POINTER, address, address >> 8, address >> 16, address >> 24];
-      _this11._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
+      _this12._sendRequest(new DfuDownload(0, 0, new Buffer(command)));
     })();
   }
 }
